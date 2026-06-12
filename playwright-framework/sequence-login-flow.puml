@@ -1,0 +1,75 @@
+@startuml
+title Playwright 登录业务流程技术时序图
+
+actor "测试用例\nlogin.spec.ts" as Test
+participant "Fixture\ntest-fixtures.ts" as Fixture
+participant "LoginPage\nlogin.page.ts" as LoginPage
+participant "BasePage\nbase-page.ts" as BasePage
+participant "PageLifecycleMonitor\nlifecycle-monitor.ts" as Monitor
+participant "Playwright Page" as PWPage
+participant "BugCollector\nbug-collector.ts" as Collector
+participant "目标系统\n/login" as App
+
+== 用例初始化 ==
+Test -> Fixture: beforeEach({ monitoredPage })
+Fixture -> Monitor: new PageLifecycleMonitor(page)
+Monitor -> PWPage: 注册 console/pageerror/response/request 监听
+Fixture --> Test: 返回 monitoredPage
+Test -> LoginPage: new LoginPage(monitoredPage)
+LoginPage -> BasePage: super(page)
+BasePage -> Monitor: new PageLifecycleMonitor(page)
+BasePage -> PWPage: 获取 context/logger
+
+== 打开登录页 ==
+Test -> LoginPage: navigate()
+LoginPage -> BasePage: navigate()
+BasePage -> PWPage: goto('/login', domcontentloaded)
+PWPage -> App: GET /login
+App --> PWPage: 登录页 HTML/CSS/JS
+PWPage --> Monitor: 触发 request/response/console 事件
+Monitor -> Collector: report() if 4xx/5xx/JS/console error
+BasePage -> PWPage: waitForLoadState('networkidle')
+BasePage --> LoginPage: 页面准备完成
+LoginPage --> Test: navigate 完成
+
+== 表单校验 ==
+Test -> LoginPage: isLoginFormReady()
+LoginPage -> PWPage: 检查 username/password/submit 可见
+PWPage --> LoginPage: 可见性结果
+LoginPage --> Test: true/false
+
+== 提交登录 ==
+Test -> LoginPage: login(username, password)
+LoginPage -> BasePage: fill(usernameInput, username)
+BasePage -> PWPage: locator.waitFor + clear + fill
+LoginPage -> BasePage: fill(passwordInput, password)
+BasePage -> PWPage: locator.waitFor + clear + fill
+LoginPage -> BasePage: click(submitButton)
+BasePage -> PWPage: locator.waitFor + click
+PWPage -> App: POST /login
+App --> PWPage: 登录成功或错误响应
+PWPage --> Monitor: response/requestfailed/pageerror
+Monitor -> Collector: report() if 异常
+
+alt 无效凭证或空用户名
+  Test -> LoginPage: isErrorVisible()
+  LoginPage -> PWPage: 查询 errorMessage 可见性
+  PWPage --> LoginPage: true
+  LoginPage --> Test: 展示错误提示
+else 登录成功
+  App --> PWPage: 跳转首页/返回 token
+  PWPage --> Test: 后续断言或跳转验证
+end
+
+== 性能与生命周期断言 ==
+Test -> LoginPage: getPerformanceMetrics()
+LoginPage -> BasePage: getPerformanceMetrics()
+BasePage -> PWPage: evaluate(performance.timing)
+PWPage --> Test: loadTime/firstByte/domReady
+
+Test -> LoginPage: getLifecycleReport()
+LoginPage -> BasePage: getLifecycleReport()
+BasePage -> Monitor: getReport()
+Monitor --> Test: summary/details
+
+@enduml
