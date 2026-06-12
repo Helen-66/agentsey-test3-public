@@ -1,0 +1,20 @@
+{
+  "name": "playwright-auto-framework",
+  "version": "1.0.0",
+  "description": "分层式Playwright自动化测试框架，支持全生命周期缺陷发现与Bug沉淀",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "test:report": "npx playwright show-report",
+    "lint": "eslint . --ext .ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "typescript": "^5.5.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
