@@ -11,6 +11,7 @@ export default defineConfig({
     ['html', { open: 'never' }],
     ['json', { outputFile: 'reports/results.json' }],
     ['./core/reporters/bug-reporter.ts'],
+    ['./core/reporters/summary-reporter.ts'],
   ],
   use: {
     baseURL: EnvConfig.baseURL,
